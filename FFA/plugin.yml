@@ -1,0 +1,12 @@
+name: FFA
+main: FFA\Main
+api: 5.0.0
+author: FresherGAMING
+version: 1.0.0
+permissions:
+  ffa.manage:
+    default: op
+  ffa.spawn:
+    default: true
+  duels.manage:
+    default: op
