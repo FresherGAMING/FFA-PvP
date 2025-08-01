@@ -1,0 +1,8 @@
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/FresherGAMING/FFA-PvP
+build-by-default: true
+branches:
+- main
+projects:
+  FFA-PvP:
+    path: ""
+...
