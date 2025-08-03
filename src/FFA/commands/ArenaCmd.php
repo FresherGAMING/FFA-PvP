@@ -3,9 +3,9 @@
 namespace FFA\commands;
 
 use FFA\FFA;
-use FFA\libs\jojoe77777\FormAPI\CustomForm;
-use FFA\libs\jojoe77777\FormAPI\SimpleForm;
-use FFA\libs\jojoe77777\FormAPI\ModalForm;
+use jojoe77777\FormAPI\CustomForm;
+use jojoe77777\FormAPI\SimpleForm;
+use jojoe77777\FormAPI\ModalForm;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
@@ -48,7 +48,7 @@ class ArenaCmd extends Command {
                 $player->sendMessage("§cPlease input the arena display name");
                 return;
             }
-            FFA::addArena($data["arenaid"], $data["arenadisplayname"], [], []);
+            FFA::addArena($data["arenaid"], $data["arenadisplayname"], "", [], [0, 0, 0], [0, 0, 0], "world", [], false, false, false, true);
             $player->sendMessage("§aArena '{$data["arenaid"]}' has been created");
             return;
         });
@@ -64,7 +64,7 @@ class ArenaCmd extends Command {
             $this->manageArena($player, $data);
         });
         $menu->setTitle("§4Manage FFA");
-        foreach(FFA::getArenas() as $id => $arena){
+        foreach(FFA::getAllArena() as $id => $arena){
             $menu->addButton($arena->getName(), -1, '', $id);
         }
         $sender->sendForm($menu);
@@ -78,7 +78,11 @@ class ArenaCmd extends Command {
                 1 => $this->removeSpawnpoint($sender, $id),
                 2 => $this->setKit($sender, $id),
                 3 => $this->arenaRemoveConfirmation($sender, $id),
-                4 => $this->setArenaDisplayName($sender, $id)
+                4 => $this->setArenaDisplayName($sender, $id),
+                5 => $this->setArenaDescription($sender, $id),
+                6 => $this->setPos($sender, $id, 1),
+                7 => $this->setPos($sender, $id, 2),
+                8 => $this->setArenaPerm($sender, $id)
             };
         });
         $menu->setTitle("§4Manage FFA");
@@ -87,6 +91,66 @@ class ArenaCmd extends Command {
         $menu->addButton("Set kit based on your inventory");
         $menu->addButton("Remove this arena");
         $menu->addButton("Set arena display name");
+        $menu->addButton("Set arena description");
+        $menu->addButton("Set arena pos1 to your current position");
+        $menu->addButton("Set arena pos2 to your current position");
+        $menu->addButton("Toggle arena permissions");
+        $sender->sendForm($menu);
+    }
+
+    public function setArenaPerm(Player $sender, string $id){
+        $arena = FFA::getArena($id);
+        $menu = new CustomForm(function($player, $data)use($id, $arena){
+            if($data === null)return;
+            $arena = FFA::getArena($id);
+            if(!$arena){
+                $player->sendMessage("§cArena '$id' no longer exist");
+                return;
+            }
+            $arena->setPerm("break", $data["break"]);
+            $arena->setPerm("place", $data["place"]);
+            $arena->setPerm("use-bucket", $data["use-bucket"]);
+            $player->sendMessage("§aArena $id's permissions has been updated");
+            return;
+        });
+        if(!$arena){
+            $sender->sendMessage("§cArena '$id' no longer exist");
+            return;
+        }
+        $menu->setTitle("§4Manage Arena '$id'");
+        $menu->addToggle("Breaking Blocks inside arena", $arena->getPerm("break"), "break");
+        $menu->addToggle("Placing Blocks inside arena", $arena->getPerm("place"), "place");
+        $menu->addToggle("Using buckets inside arena", $arena->getPerm("usebucket"), "use-bucket");
+        $sender->sendForm($menu);
+    }
+
+    public function setPos(Player $sender, string $id, int $pos){
+        $arena = FFA::getArena($id);
+        if(!$arena){
+            $sender->sendMessage("§cArena '$id' no longer exist");
+            return;
+        }
+        $player_pos = $sender->getLocation();
+        $arena->setPos($pos, $player_pos);
+        $x = $player_pos->getX(); $y = $player_pos->getY(); $z = $player_pos->getZ();
+        $sender->sendMessage("§aPos$pos ($x, $y, $z) has been set for Arena '$id'");
+        return;
+    }
+
+    public function setArenaDescription(Player $sender, string $id){
+        $menu = new CustomForm(function($player, $data)use($id){
+            if($data === null)return;
+            $arena = FFA::getArena($id);
+            if(!$arena){
+                $player->sendMessage("§cArena '$id' no longer exist");
+                return;
+            }
+            $arena->setDescription($data["arenadesc"]);
+            $player->sendMessage("§aArena $id's description has been changed to '{$data["arenadesc"]}'");
+            return;
+        });
+        $menu->setTitle("§4Manage Arena '$id'");
+        $menu->addInput("New Arena Description", '', null, "arenadesc");
         $sender->sendForm($menu);
     }
 
@@ -190,7 +254,7 @@ class ArenaCmd extends Command {
                 return;
             }
             $arena->setDisplayName($data["arenadisplayname"]);
-            $player->sendMessage("§aArena $id's display name has been changed to {$data["arenadisplayname"]}");
+            $player->sendMessage("§aArena $id's display name has been changed to '{$data["arenadisplayname"]}'");
             return;
         });
         $menu->setTitle("§4Manage Arena '$id'");

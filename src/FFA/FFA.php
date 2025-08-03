@@ -2,8 +2,9 @@
 
 namespace FFA;
 
-use FFA\libs\poggit\libasynql\DataConnector;
-use FFA\libs\poggit\libasynql\libasynql;
+use pocketmine\item\StringToItemParser;
+use poggit\libasynql\DataConnector;
+use poggit\libasynql\libasynql;
 use pocketmine\entity\Location;
 use pocketmine\item\VanillaItems;
 use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
@@ -20,6 +21,8 @@ class FFA {
 
     public static Config $cfg;
 
+    public static Config $ffa;
+
     public static DataConnector $playerdata;
 
     public static array $players = [];
@@ -27,46 +30,46 @@ class FFA {
     public static array $arenas = [];
 
     public static function init(){
-        self::$cfg = new Config(Main::getInstance()->getDataFolder() . "config.yml", Config::YAML, [
-            "spawn" => [],
-            "arenas" => []
+        self::$cfg = Main::getInstance()->getConfig();
+        self::$ffa = (new Config(Main::getInstance()->getDataFolder() . "ffa.yml", Config::YAML, []));
+        $database = (new Config(Main::getInstance()->getDataFolder() . "database.yml", Config::YAML, []))->get("database");
+        self::$playerdata = libasynql::create(Main::getInstance(), $database, [
+            "sqlite" => "ps-sqlite.sql",
+            "mysql" => "ps-mysql.sql"
         ]);
-        self::$playerdata = libasynql::create(Main::getInstance(), 
-        ["type" => "sqlite",
-            "sqlite" => [
-                "file" => "ffa-playerdata.sqlite"
-            ],
-            "mysql" => [
-                "host" => "127.0.0.1",
-                "username" => "root",
-                "password" => "",
-                "schema" => "your_schema"
-            ],
-            "worker-limit" => 1], [
-                "sqlite" => "ps.sql",
-                "mysql" => "ps.sql"
-            ]);
         self::$playerdata->executeGeneric("data.setup");
-        self::loadArenas();
+        self::loadAllArena();
     }
 
     public static function setSpawn(Location $pos){
-        $data = [$pos->getX(), $pos->getY(), $pos->getZ(), $pos->getYaw(), $pos->getPitch()];
+        $world = Server::getInstance()->getWorldManager()->getDefaultWorld()->getFolderName();
         if($pos->getWorld() instanceof World){
-            $data[] = $pos->getWorld()->getFolderName();
-        } else {
-            $data[] = Server::getInstance()->getWorldManager()->getDefaultWorld()->getFolderName();
+            $world = $pos->getWorld()->getFolderName();
         }
-        self::$cfg->set("spawn", $data);
-        self::$cfg->save();
+        $pos = [$pos->getX(), $pos->getY(), $pos->getZ(), $pos->getYaw(), $pos->getPitch()];
+        $cfgpath = Main::getInstance()->getDataFolder() . "config.yml";
+        $file = file($cfgpath);
+        $stringpos = "[" . implode(", ", $pos) . "]";
+        foreach($file as $line => $text){
+            if(substr($text, 0, 13) === "  spawn-pos: "){
+                $file[$line] = "  spawn-pos: " . $stringpos . PHP_EOL;
+            }
+            if(substr($text, 0, 15) === "  spawn-world: "){
+                $file[$line] = "  spawn-world: " . $world . PHP_EOL;
+            }
+        }
+        file_put_contents($cfgpath, implode($file));
+        self::$cfg->reload();
     }
 
     public static function getSpawn(){
-        $spawndata = self::$cfg->get("spawn");
+        $spawndata = self::$cfg->get("spawn-position");
+        $spawnpos = $spawndata["spawn-pos"];
+        $spawnworld = $spawndata["spawn-world"];
         if(empty($spawndata)){
             return null;
         }
-        return new Location($spawndata[0], $spawndata[1], $spawndata[2], Server::getInstance()->getWorldManager()->getWorldByName($spawndata[5]), $spawndata[3], $spawndata[4]);
+        return new Location($spawnpos[0], $spawnpos[1], $spawnpos[2], Server::getInstance()->getWorldManager()->getWorldByName($spawnworld), $spawnpos[3] ?? 0, $spawnpos[4] ?? 0);
     }
 
     public static function teleportToSpawn(Player $player){
@@ -81,52 +84,78 @@ class FFA {
         }
     }    
     public static function giveSpawnItem(Player $player){
-        $item = VanillaItems::DIAMOND_SWORD();
-        $item->setCustomName("§r§bFFA Menu");
-        $item->setLore(["§r§aClick to open FFA menu"]);
+        $spawnitem = self::$cfg->get("spawn-item");
+        if(!$spawnitem["enabled"])return;
+        if($spawnitem["inv-clear"]){
+            $player->getInventory()->clearAll();
+            $player->getArmorInventory()->clearAll();
+            $player->getOffHandInventory()->clearAll();
+        }
+
+        $item = StringToItemParser::getInstance()->parse($spawnitem["item-id"]);
+        $item->setCustomName($spawnitem["item-name"] ?? $item->getVanillaName());
+        $item->setLore([$spawnitem["item-lore"]]);
         $item->getNamedTag()->setString("ffa", "ffa");
-        $item2 = VanillaItems::DIAMOND_SWORD();
-        $item2->setCustomName("§r§aDuels Menu");
-        $item2->setLore(["§r§aClick to open Duels menu"]);
-        $item2->getNamedTag()->setString("duels", "duels");
-        $player->getInventory()->clearAll();
-        $player->getArmorInventory()->clearAll();
-        $player->getOffHandInventory()->clearAll();
-        $player->getInventory()->setItem(0, $item);
-        $player->getInventory()->setItem(1, $item2);
+        $player->getInventory()->setItem($spawnitem["inv-slot"] ?? 0, $item);
     }
 
-    public static function loadArenas(){
-        foreach(self::$cfg->get("arenas") as $id => $arena){
-            self::$arenas[$id] = new Arena($id, $arena["displayname"], $arena["spawnpoint"], $arena["kits"]);
+    public static function loadAllArena(){
+        $arenacfg = self::$ffa->get("arena");
+        foreach($arenacfg as $arena){
+            self::$arenas[$arena["id"]] = 
+            new Arena($arena["id"], $arena["name"], $arena["description"], $arena["spawnpoint"],
+            $arena["pos1"], $arena["pos2"], $arena["world"], $arena["kits"], 
+            $arena["break"] ?? false, $arena["place"] ?? false, $arena["use-bucket"] ?? true);
         }
     }
 
-    public static function getArenas(){
+    public static function loadArena(string $id){
+        $arenacfg = self::$ffa->get("arena");
+        foreach($arenacfg as $arena){
+            if($arena["id"] !== $id)continue;
+            self::$arenas[$arena["id"]] = 
+            new Arena($arena["id"], $arena["name"], $arena["description"], $arena["spawnpoint"],
+            $arena["pos1"], $arena["pos2"], $arena["world"], $arena["kits"], 
+            $arena["break"] ?? false, $arena["place"] ?? false, $arena["use-bucket"] ?? true);
+        }
+    }
+
+    public static function getAllArena(){
         return self::$arenas;
     }
 
-    public static function addArena(string $name, string $displayName, array $spawnPoints, array $kits){
-        $arenalist = self::$cfg->get("arenas");
-        $arenalist[$name] = [
-            "displayname" => $displayName,
-            "spawnpoint" => $spawnPoints, 
-            "kits" => $kits
+    public static function addArena(string $name, string $displayName, 
+    string $description, array $spawnPoints, array $pos1, array $pos2, 
+    string $world, array $kits, bool $break, bool $place, bool $usebucket){
+        $arenalist = self::$ffa->get("arena");
+        $arenalist[] = [
+            "id" => $name,
+            "name" => $displayName, 
+            "description" => $description,
+            "pos1" => $pos1,
+            "pos2" => $pos2,
+            "world" => $world,
+            "spawnpoint" => $spawnPoints,
+            "kits" => $kits,
+            "break" => $break,
+            "place" => $place,
+            "use-bucket" => $usebucket
         ];
-        self::$cfg->set("arenas", $arenalist);
-        self::$cfg->save();
-        self::$arenas[$name] = new Arena($name, $displayName, $spawnPoints, $kits);
+        self::$ffa->set("arena", $arenalist);
+        self::$ffa->save();
+        self::loadArena($name);
     }
 
     public static function removeArena(string $name){
-        $arenalist = self::$cfg->get("arenas");
-        if(array_key_exists($name, $arenalist)){
-            unset($arenalist[$name]);
-            self::$cfg->set("arenas", $arenalist);
-            self::$cfg->save();
-        }
-        if(array_key_exists($name, self::$arenas)){
-            unset(self::$arenas[$name]);
+        $arenalist = self::$ffa->get("arena");
+        foreach($arenalist as $k => $arena){
+            if($arena["id"] !== $name)continue;
+                unset($arenalist[$k]);
+                self::$ffa->set("arena", $arenalist);
+                self::$ffa->save();
+            if(array_key_exists($name, self::$arenas)){
+                unset(self::$arenas[$name]);
+            }
         }
     }
 
@@ -165,7 +194,7 @@ class FFA {
                     FFA::$players[$player] = $data;
                     $p = Server::getInstance()->getPlayerExact($player);
                     if($p instanceof Player && $p->isOnline()){
-                        self::updateScoreboard($p);
+                        Scoreboard::updateScoreboard($p);
                     }
                 }
             }
@@ -228,6 +257,15 @@ class FFA {
                 return;
             }
         });
+    }
+
+    public static function getPlayerArena(Player $player){
+        foreach(self::getAllArena() as $arena){
+            if($arena->isInsideArena($player)){
+                return $arena;
+            }
+        }
+        return null;
     }
 
 }

@@ -2,17 +2,24 @@
 
 namespace FFA;
 
+use pocketmine\data\bedrock\EnchantmentIdMap;
 use pocketmine\entity\Location;
+use pocketmine\item\enchantment\EnchantmentInstance;
+use pocketmine\item\enchantment\StringToEnchantmentParser;
+use pocketmine\item\Item;
 use pocketmine\item\StringToItemParser;
 use pocketmine\player\Player;
 use pocketmine\Server;
 use pocketmine\world\Position;
 
 class Arena {
-    
-    private array $kits;
 
-    public function __construct(private string $name, private string $displayName, private array $spawnPoints, array $kits){
+    private array $kits = [];
+
+    public function __construct(private string $name, private string $displayName, 
+        private string $description, private array $spawnPoints, 
+        private array $pos1, private array $pos2, private string $world, array $kits, 
+        private bool $break, private bool $place, private bool $usebucket){
         $this->loadKits($kits);
     }
 
@@ -29,7 +36,7 @@ class Arena {
             return null;
         }
         $spawndata = $this->spawnPoints[array_rand($this->spawnPoints)];
-        return new Location($spawndata[0], $spawndata[1], $spawndata[2], Server::getInstance()->getWorldManager()->getWorldByName($spawndata[5]), $spawndata[3], $spawndata[4]);
+        return new Location($spawndata[0], $spawndata[1], $spawndata[2], Server::getInstance()->getWorldManager()->getWorldByName($this->world), $spawndata[3]  ?? 0, $spawndata[4] ?? 0);
     }
 
     public function getSpawnpoints(){
@@ -38,10 +45,10 @@ class Arena {
 
     public function addSpawnPoint(Location $pos){
         $this->spawnPoints[] = [$pos->getX(), $pos->getY(), $pos->getZ(), $pos->getYaw(), $pos->getPitch(), $pos->getWorld()->getFolderName()];
-        $arenalist = FFA::$cfg->get("arenas");
-        $arenalist[$this->name]["spawnpoint"][] = [$pos->getX(), $pos->getY(), $pos->getZ(), $pos->getYaw(), $pos->getPitch(), $pos->getWorld()->getFolderName()];
-        FFA::$cfg->set("arenas", $arenalist);
-        FFA::$cfg->save();
+        $arenalist = FFA::$ffa->get("arena");
+        $arenalist[$this->getId_Int()]["spawnpoint"][] = [$pos->getX(), $pos->getY(), $pos->getZ(), $pos->getYaw(), $pos->getPitch(), $pos->getWorld()->getFolderName()];
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
     }
 
     public function removeSpawnPoint(int $id){
@@ -49,11 +56,12 @@ class Arena {
             unset($this->spawnPoints[$id]);
             $this->spawnPoints = array_values($this->spawnPoints);
         }
-        $arenalist = FFA::$cfg->get("arenas");
-        if(array_key_exists($id, $arenalist[$this->name]["spawnpoint"])){
-            unset($arenalist[$this->name]["spawnpoint"][$id]);
-            FFA::$cfg->set("arenas", $arenalist);
-            FFA::$cfg->save();
+        $arenalist = FFA::$ffa->get("arena");
+        $id_int = $this->getId_Int();
+        if(array_key_exists($id, $arenalist[$id_int]["spawnpoint"])){
+            unset($arenalist[$id_int]["spawnpoint"][$id]);
+            FFA::$ffa->set("arena", $arenalist);
+            FFA::$ffa->save();
         }
     }
 
@@ -66,21 +74,41 @@ class Arena {
             $kit[str_replace([0], ["offhand"], $slot)] = $item;
         }
         $this->kits = $kit;
-        $arenalist = FFA::$cfg->get("arenas");
+        $arenalist = FFA::$ffa->get("arena");
         $serializedkit = [];
         foreach($kit as $slot => $item){
-            $serializedkit[$slot] = StringToItemParser::getInstance()->lookupAliases($item)[0] . "#--$909$--#" . $item->getCount() . "#--$909$--#" . serialize($item->getNamedTag());
+            // $enchants = [];
+            // foreach($item->getEnchantments() as $e){
+            //     $enchants[strtolower($e->getType()->getName()->getText())] = $e->getLevel();
+            // }
+            // $serializedkit[$slot] = 
+            // [
+            //     "id" => StringToItemParser::getInstance()->lookupAliases($item)[0],
+            //     "amount" => $item->getCount(),
+            //     "display-name" => $item->getCustomName(),
+            //     "lore" => implode("\n", $item->getLore()),
+            //     "enchants" => $enchants
+            // ];
+            $serializedkit[$slot] = [StringToItemParser::getInstance()->lookupAliases($item)[0], $item->getCount(), serialize($item->getNamedTag())];
         }
-        $arenalist[$this->name]["kits"] = $serializedkit;
-        FFA::$cfg->set("arenas", $arenalist);
-        FFA::$cfg->save();
+        $arenalist[$this->getId_Int()]["kits"] = $serializedkit;
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
     }
 
     public function loadKits(array $kits){
         foreach($kits as $slot => $data){
-            $itemid = explode("#--$909$--#", $data)[0];
-            $count = explode("#--$909$--#", $data)[1];
-            $tags = unserialize(explode("#--$909$--#", $data)[2]);
+            // $item = StringToItemParser::getInstance()->parse($data["id"]);
+            // $item->setCount($data["amount"] ?? 1);
+            // $item->setCustomName($data["display-name"] ?? $item->getVanillaName());
+            // $item->setLore([$data["lore"] ?? ""]);
+            // foreach($data["enchants"] as $id => $level){
+            //     $item->addEnchantment(new EnchantmentInstance(StringToEnchantmentParser::getInstance()->parse($id),$level));
+            // }
+            // $this->kits[$slot] = $item;
+            $itemid = $data[0];
+            $count = $data[1];
+            $tags = unserialize($data[2]);
             $this->kits[$slot] = StringToItemParser::getInstance()->parse($itemid)->setCount($count)->setNamedTag($tags);
         }
     }
@@ -104,11 +132,85 @@ class Arena {
         }
     }
 
+
     public function setDisplayName(string $displayName){
         $this->displayName = $displayName;
-        $arenalist = FFA::$cfg->get("arenas");
-        $arenalist[$this->name]["displayname"] = $displayName;
-        FFA::$cfg->set("arenas", $arenalist);
-        FFA::$cfg->save();
+        $arenalist = FFA::$ffa->get("arena");
+        $arenalist[$this->getId_Int()]["name"] = $displayName;
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
+    }
+
+    public function getDescription(){
+        return $this->description;
+    }
+
+    public function setDescription(string $desc){
+        $this->description = $desc;
+        $arenalist = FFA::$ffa->get("arena");
+        $arenalist[$this->getId_Int()]["description"] = $desc;
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
+    }
+
+    public function getPerm(string $perm){
+        return $this->{$perm};
+    }
+
+    public function setPerm(string $perm, bool $toggle){
+        $this->{str_replace("-", "", $perm)} = $toggle;
+        $arenalist = FFA::$ffa->get("arena");
+        $arenalist[$this->getId_Int()][$perm] = $toggle;
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
+    }
+
+    public function setPos(int $pos_id, Position $pos){
+        $this->{"pos$pos_id"} = [$pos->getX(), $pos->getY(), $pos->getZ()];
+        $arenalist = FFA::$ffa->get("arena");
+        $arenalist[$this->getId_Int()]["pos$pos_id"] = [$pos->getX(), $pos->getY(), $pos->getZ()];
+        FFA::$ffa->set("arena", $arenalist);
+        FFA::$ffa->save();
+    }
+
+    public function getId_Int(){
+        $arenalist = FFA::$ffa->get("arena");
+        foreach($arenalist as $i => $arena){
+            if($arena["id"] === $this->name){
+                return $i;
+            }
+        }
+    }
+
+    public function getPlayerAmount(){
+        $count = 0;
+        foreach(Server::getInstance()->getOnlinePlayers() as $p){
+            if($this->isInsideArena($p)){
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    public function isInsideArena(Player $p){
+        $pos1 = $this->pos1;
+        $pos2 = $this->pos2;
+        $xMin = min([$pos1[0], $pos2[0]]);
+        $xMax = max([$pos1[0], $pos2[0]]);
+        $yMin = min([$pos1[1], $pos2[1]]);
+        $yMax = max([$pos1[1], $pos2[1]]);
+        $zMin = min([$pos1[2], $pos2[2]]);
+        $zMax = max([$pos1[2], $pos2[2]]);
+        $pos = $p->getPosition();
+        [$x, $y, $z] = [$pos->getX(), $pos->getY(), $pos->getZ()];
+        if(
+            ($p->getWorld()->getFolderName() === $this->world) &&
+            ($x >= $xMin && $x <= $xMax) &&
+            ($y >= $yMin && $y <= $yMax) &&
+            ($z >= $zMin && $z <= $zMax)
+        ){
+            return true;
+        }
+        return false;
     }
 }

@@ -1,0 +1,72 @@
+# SCOREBOARD CONFIG
+scoreboard:
+
+  # Set this to false if you want to disabled it
+  enabled: true
+
+  # The title will be appeared on the top 
+  title: §e§lPLAYER STATS
+
+  # This is the contents of scoreboard and would appeared below title
+  contents: 
+    # The maximum size of contents are 15 lines
+    # Player name = {player_name}
+    # Kills = {kills}
+    # Deaths = {deaths}
+    # KDR Ratio = {kdr}
+    - "§l§e{player_name}"
+    - "§a>> §cKills: {kills}"
+    - "§a>> §4Deaths: {deaths}"
+    - "§cK§r/§4D§r: {kdr}"
+
+# SPAWN ITEM CONFIG
+spawn-item:
+
+  # Set this to false if you want to disabled item spawn
+  enabled: true
+
+  # If this set to true, automatically clear player inventory everytime leave the arena
+  inv-clear: true
+
+  # The item name for the spawn item
+  item-name: §cFFA §eMenu
+
+  # The item id for the spawn item
+  item-id: iron_sword
+
+  # The item lore for the spawn item
+  item-lore: §aTap to open FFA Menu
+ 
+  # This is the inventory slot where the item will be placed, starting from 0 - 35
+  inv-slot: 4
+
+  # This is the ui config when interact with spawn item
+  spawn-item-ui: 
+
+    # Title of the ui
+    ui-title: "§a§lFFA MENU"
+
+    # UI Button format
+    # Displaying the arena name = {arena_name}
+    # Displaying the arena id = {arena_id}
+    # Displaying the arena description = {arena_desc}
+    # Displaying the amount of players inside the arena = {arena_player_amount}
+    ui-button: "§e{arena_name} §a| §b{arena_player_amount} players\n§8{arena_desc}"
+
+
+# SPAWN POSITION CONFIG
+spawn-position:
+
+  # If set to true player will automatically teleported to spawn when joining the server
+  enabled: true
+
+  # This is where player will spawn when joining the server and when the player died on arena
+  # can also add yaw and pitch, but it's optional
+  # [x, y, z, yaw, pitch]
+  # world's folder name
+  spawn-pos: [0, 100, 0]
+  spawn-world: world
+
+# SPAWN COMMAND CONFIG
+# Set this to false to disable /spawn command
+spawn-command-enabled: true

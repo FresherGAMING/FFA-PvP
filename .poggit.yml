@@ -5,4 +5,9 @@ branches:
 projects:
   FFA-PvP:
     path: ""
+    libs:
+      - src: jojoe77777/FormAPI/libFormAPI
+        version: ^2.1.1
+      - src: poggit/libasynql/libasynql
+        version: ^4.2.0
 ...
