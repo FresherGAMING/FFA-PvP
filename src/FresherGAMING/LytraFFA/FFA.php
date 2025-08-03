@@ -1,20 +1,14 @@
 <?php
 
-namespace FFA;
+namespace FresherGAMING\LytraFFA;
 
 use pocketmine\item\StringToItemParser;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
 use pocketmine\entity\Location;
-use pocketmine\item\VanillaItems;
-use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetScorePacket;
-use pocketmine\network\mcpe\protocol\types\ScorePacketEntry;
 use pocketmine\player\Player;
 use pocketmine\Server;
 use pocketmine\utils\Config;
-use pocketmine\world\Position;
 use pocketmine\world\World;
 
 class FFA {

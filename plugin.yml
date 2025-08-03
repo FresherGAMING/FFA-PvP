@@ -1,12 +1,10 @@
-name: FFA-PvP
-main: FFA\Main
+name: LytraFFA
+main: FresherGAMING\LytraFFA\Main
 api: 5.0.0
 author: FresherGAMING
 version: 1.0.0
 permissions:
-  ffa.manage:
+  lytraffa.manage:
     default: op
-  ffa.spawn:
+  lytraffa.spawn:
     default: true
-  duels.manage:
-    default: op

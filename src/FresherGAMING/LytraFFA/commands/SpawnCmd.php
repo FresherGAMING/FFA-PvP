@@ -1,20 +1,21 @@
 <?php
 
-namespace FFA\commands;
+namespace FresherGAMING\LytraFFA\commands;
 
-use FFA\FFA;
-use FFA\libs\jojoe77777\FormAPI\CustomForm;
-use FFA\libs\jojoe77777\FormAPI\SimpleForm;
-use FFA\libs\jojoe77777\FormAPI\ModalForm;
+use FresherGAMING\LytraFFA\FFA;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
+use pocketmine\plugin\PluginOwned;
+use pocketmine\plugin\PluginOwnedTrait;
 
-class SpawnCmd extends Command {
+class SpawnCmd extends Command implements PluginOwned {
+
+    use PluginOwnedTrait;
 
     public function __construct(){
         parent::__construct("spawn", "Go to FFA Spawn", "Usage: /spawn", ["lobby"]);
-        $this->setPermission("ffa.spawn");
+        $this->setPermission("lytraffa.spawn");
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args){

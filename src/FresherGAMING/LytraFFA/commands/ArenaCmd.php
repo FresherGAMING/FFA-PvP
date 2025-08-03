@@ -1,20 +1,24 @@
 <?php
 
-namespace FFA\commands;
+namespace FresherGAMING\LytraFFA\commands;
 
-use FFA\FFA;
+use FresherGAMING\LytraFFA\FFA;
 use jojoe77777\FormAPI\CustomForm;
 use jojoe77777\FormAPI\SimpleForm;
 use jojoe77777\FormAPI\ModalForm;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
+use pocketmine\plugin\PluginOwned;
+use pocketmine\plugin\PluginOwnedTrait;
 
-class ArenaCmd extends Command {
+class ArenaCmd extends Command implements PluginOwned {
+
+    use PluginOwnedTrait;
 
     public function __construct(){
         parent::__construct("ffa", "Manage FFA arena settings", "Usage: /ffa");
-        $this->setPermission("ffa.manage");
+        $this->setPermission("lytraffa.manage");
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args){
@@ -30,7 +34,7 @@ class ArenaCmd extends Command {
                 "setlobby" => $this->setLobby($player)
             };
         });
-        $menu->setTitle("§4Manage FFA");
+        $menu->setTitle("§4Manage LytraFFA");
         $menu->addButton("Create new arena", -1, '', "create");
         $menu->addButton("Manage existing arena", -1, '', "manage");
         $menu->addButton("Set FFA Lobby", -1, '', "setlobby");

@@ -1,12 +1,8 @@
 <?php
 
-namespace FFA;
+namespace FresherGAMING\LytraFFA;
 
-use pocketmine\data\bedrock\EnchantmentIdMap;
 use pocketmine\entity\Location;
-use pocketmine\item\enchantment\EnchantmentInstance;
-use pocketmine\item\enchantment\StringToEnchantmentParser;
-use pocketmine\item\Item;
 use pocketmine\item\StringToItemParser;
 use pocketmine\player\Player;
 use pocketmine\Server;
@@ -77,18 +73,6 @@ class Arena {
         $arenalist = FFA::$ffa->get("arena");
         $serializedkit = [];
         foreach($kit as $slot => $item){
-            // $enchants = [];
-            // foreach($item->getEnchantments() as $e){
-            //     $enchants[strtolower($e->getType()->getName()->getText())] = $e->getLevel();
-            // }
-            // $serializedkit[$slot] = 
-            // [
-            //     "id" => StringToItemParser::getInstance()->lookupAliases($item)[0],
-            //     "amount" => $item->getCount(),
-            //     "display-name" => $item->getCustomName(),
-            //     "lore" => implode("\n", $item->getLore()),
-            //     "enchants" => $enchants
-            // ];
             $serializedkit[$slot] = [StringToItemParser::getInstance()->lookupAliases($item)[0], $item->getCount(), serialize($item->getNamedTag())];
         }
         $arenalist[$this->getId_Int()]["kits"] = $serializedkit;
@@ -98,14 +82,6 @@ class Arena {
 
     public function loadKits(array $kits){
         foreach($kits as $slot => $data){
-            // $item = StringToItemParser::getInstance()->parse($data["id"]);
-            // $item->setCount($data["amount"] ?? 1);
-            // $item->setCustomName($data["display-name"] ?? $item->getVanillaName());
-            // $item->setLore([$data["lore"] ?? ""]);
-            // foreach($data["enchants"] as $id => $level){
-            //     $item->addEnchantment(new EnchantmentInstance(StringToEnchantmentParser::getInstance()->parse($id),$level));
-            // }
-            // $this->kits[$slot] = $item;
             $itemid = $data[0];
             $count = $data[1];
             $tags = unserialize($data[2]);

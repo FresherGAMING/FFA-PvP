@@ -1,6 +1,6 @@
 <?php
 
-namespace FFA;
+namespace FresherGAMING\LytraFFA;
 
 use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;

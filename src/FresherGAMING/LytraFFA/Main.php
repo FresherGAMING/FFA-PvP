@@ -1,18 +1,11 @@
 <?php
 
-namespace FFA;
+namespace FresherGAMING\LytraFFA;
 
-use FFA\commands\ArenaCmd;
-use FFA\commands\SpawnCmd;
-use FFA\EventListener;
-use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
-use pocketmine\network\mcpe\protocol\SetScorePacket;
-use pocketmine\network\mcpe\protocol\types\ScorePacketEntry;
-use pocketmine\player\Player;
+use FresherGAMING\LytraFFA\commands\ArenaCmd;
+use FresherGAMING\LytraFFA\commands\SpawnCmd;
+use FresherGAMING\LytraFFA\EventListener;
 use pocketmine\plugin\PluginBase;
-use pocketmine\utils\Config;
-use pocketmine\utils\SingletonTrait;
 
 class Main extends PluginBase {
 
@@ -26,9 +19,9 @@ class Main extends PluginBase {
         FFA::init();
         $this->getServer()->getPluginManager()->registerEvents(new EventListener(), $this);
         if($this->getConfig()->get("spawn-command-enabled")){
-            $this->getServer()->getCommandMap()->register("FFA", new SpawnCmd());
+            $this->getServer()->getCommandMap()->register("LytraFFA", new SpawnCmd());
         }
-        $this->getServer()->getCommandMap()->register("FFA", new ArenaCmd());
+        $this->getServer()->getCommandMap()->register("LytraFFA", new ArenaCmd());
     }
 
     public static function getInstance(){

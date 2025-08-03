@@ -1,6 +1,6 @@
 <?php
 
-namespace FFA;
+namespace FresherGAMING\LytraFFA;
 
 use jojoe77777\FormAPI\SimpleForm;
 use pocketmine\event\block\BlockBreakEvent;
