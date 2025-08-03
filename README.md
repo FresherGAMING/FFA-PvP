@@ -9,6 +9,8 @@ There are a lot of options there, from creating an arena, renaming an arena, add
 
 Everytime player got kills or deaths, the data would be stored to database inside plugin data
 
+![alt text](https://i.imgur.com/pbymUDg.jpeg)
+
 # Commands - Permissions
 | Commands | Description         | Permissions     |
 | -------- | ------------------- | --------------- |
